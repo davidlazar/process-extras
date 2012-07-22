@@ -19,6 +19,7 @@ source-repository head
   Location:         https://github.com/davidlazar/process-extras
 
 Library
+  ghc-options:      -Wall
   Hs-source-dirs:   src
   Exposed-modules:
     System.Process.ByteString
