@@ -20,8 +20,15 @@ source-repository head
 
 Library
   ghc-options:      -Wall
+
   Hs-source-dirs:   src
+
   Exposed-modules:
     System.Process.ByteString
     System.Process.Text
-  Build-depends:    base >= 4 && < 5, process, bytestring, text
+
+  Build-depends:
+    base >= 4 && < 5,
+    process,
+    bytestring,
+    text
