@@ -1,6 +1,7 @@
 module System.Process.ByteString.Lazy where
 
 import Control.Concurrent
+import qualified Control.Exception as C
 import Control.Monad
 import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as B
@@ -20,20 +21,14 @@ readProcessWithExitCode cmd args input = do
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
     outMVar <- newEmptyMVar
-    outM <- newEmptyMVar
-    errM <- newEmptyMVar
 
     -- fork off a thread to start consuming stdout
-    _ <- forkIO $ do
-        out <- B.hGetContents outh
-        putMVar outM out
-        putMVar outMVar ()
+    out  <- B.hGetContents outh
+    _ <- forkIO $ C.evaluate (B.length out) >> putMVar outMVar ()
 
     -- fork off a thread to start consuming stderr
-    _ <- forkIO $ do
-        err  <- B.hGetContents errh
-        putMVar errM err
-        putMVar outMVar ()
+    err  <- B.hGetContents errh
+    _ <- forkIO $ C.evaluate (B.length err) >> putMVar outMVar ()
 
     -- now write and flush any input
     when (not (B.null input)) $ do B.hPutStr inh input; hFlush inh
@@ -43,10 +38,9 @@ readProcessWithExitCode cmd args input = do
     takeMVar outMVar
     takeMVar outMVar
     hClose outh
+    hClose errh
 
     -- wait on the process
     ex <- waitForProcess pid
-    out <- readMVar outM
-    err <- readMVar errM
 
     return (ex, out, err)
