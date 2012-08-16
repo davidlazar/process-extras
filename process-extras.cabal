@@ -28,6 +28,9 @@ Library
     System.Process.ByteString.Lazy
     System.Process.Text
 
+  Other-modules:
+    Utils
+
   Build-depends:
     base >= 4 && < 5,
     process,
