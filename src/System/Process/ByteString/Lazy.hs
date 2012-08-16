@@ -1,13 +1,14 @@
 module System.Process.ByteString.Lazy where
 
-import Control.Concurrent
-import qualified Control.Exception as C
+import Control.Exception
+import qualified Control.Exception as C (evaluate)
 import Control.Monad
 import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as B
 import System.Process
 import System.Exit (ExitCode)
 import System.IO
+import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
 readProcessWithExitCode
@@ -15,32 +16,35 @@ readProcessWithExitCode
     -> [String]                 -- ^ any arguments
     -> ByteString               -- ^ standard input
     -> IO (ExitCode, ByteString, ByteString) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = do
+readProcessWithExitCode cmd args input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
         createProcess (proc cmd args){ std_in  = CreatePipe,
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
-    outMVar <- newEmptyMVar
+    flip onException
+      (do hClose inh; hClose outh; hClose errh;
+            terminateProcess pid; waitForProcess pid) $ restore $ do
 
-    -- fork off a thread to start consuming stdout
-    out  <- B.hGetContents outh
-    _ <- forkIO $ C.evaluate (B.length out) >> putMVar outMVar ()
+      -- fork off a thread to start consuming stdout
+      out <- B.hGetContents outh
+      waitOut <- forkWait $ void $ C.evaluate $ B.length out
 
-    -- fork off a thread to start consuming stderr
-    err  <- B.hGetContents errh
-    _ <- forkIO $ C.evaluate (B.length err) >> putMVar outMVar ()
+      -- fork off a thread to start consuming stderr
+      err <- B.hGetContents errh
+      waitErr <- forkWait $ void $ C.evaluate $ B.length err
 
-    -- now write and flush any input
-    when (not (B.null input)) $ do B.hPutStr inh input; hFlush inh
-    hClose inh -- done with stdin
+      -- now write and flush any input
+      unless (B.null input) $ do B.hPutStr inh input; hFlush inh
+      hClose inh -- done with stdin
 
-    -- wait on the output
-    takeMVar outMVar
-    takeMVar outMVar
-    hClose outh
-    hClose errh
+      -- wait on the output
+      waitOut
+      waitErr
 
-    -- wait on the process
-    ex <- waitForProcess pid
+      hClose outh
+      hClose errh
 
-    return (ex, out, err)
+      -- wait on the process
+      ex <- waitForProcess pid
+
+      return (ex, out, err)
