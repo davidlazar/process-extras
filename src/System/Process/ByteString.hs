@@ -1,12 +1,13 @@
 module System.Process.ByteString where
 
-import Control.Concurrent
+import Control.Exception
 import Control.Monad
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import System.Process
 import System.Exit (ExitCode)
 import System.IO
+import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
 readProcessWithExitCode
@@ -14,40 +15,33 @@ readProcessWithExitCode
     -> [String]                 -- ^ any arguments
     -> ByteString               -- ^ standard input
     -> IO (ExitCode, ByteString, ByteString) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = do
+readProcessWithExitCode cmd args input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
         createProcess (proc cmd args){ std_in  = CreatePipe,
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
-    outMVar <- newEmptyMVar
-    outM <- newEmptyMVar
-    errM <- newEmptyMVar
+    flip onException
+      (do hClose inh; hClose outh; hClose errh;
+          terminateProcess pid; waitForProcess pid) $ restore $ do
 
-    -- fork off a thread to start consuming stdout
-    _ <- forkIO $ do
-        out <- B.hGetContents outh
-        putMVar outM out
-        putMVar outMVar ()
+        -- fork off a thread to start consuming stdout
+      waitOut <- forkWait $ B.hGetContents outh
 
-    -- fork off a thread to start consuming stderr
-    _ <- forkIO $ do
-        err  <- B.hGetContents errh
-        putMVar errM err
-        putMVar outMVar ()
+        -- fork off a thread to start consuming stderr
+      waitErr <- forkWait $ B.hGetContents errh
 
-    -- now write and flush any input
-    when (not (B.null input)) $ do B.hPutStr inh input; hFlush inh
-    hClose inh -- done with stdin
+      -- now write and flush any input
+      unless (B.null input) $ do B.hPutStr inh input; hFlush inh
+      hClose inh -- done with stdin
 
-    -- wait on the output
-    takeMVar outMVar
-    takeMVar outMVar
-    hClose outh
-    hClose errh
+      -- wait on the output
+      out <- waitOut
+      err <- waitErr
 
-    -- wait on the process
-    ex <- waitForProcess pid
-    out <- readMVar outM
-    err <- readMVar errM
+      hClose outh
+      hClose errh
 
-    return (ex, out, err)
+      -- wait on the process
+      ex <- waitForProcess pid
+
+      return (ex, out, err)

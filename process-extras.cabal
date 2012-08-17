@@ -27,9 +27,14 @@ Library
     System.Process.ByteString
     System.Process.ByteString.Lazy
     System.Process.Text
+    System.Process.Text.Lazy
+
+  Other-modules:
+    Utils
 
   Build-depends:
     base >= 4 && < 5,
     process,
     bytestring,
-    text
+    text,
+    deepseq
