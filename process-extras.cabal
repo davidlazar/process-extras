@@ -6,7 +6,7 @@ Description:        Extra functionality for the Process library
 Homepage:           https://github.com/davidlazar/process-extras
 License:            MIT
 License-file:       LICENSE
-Author:             David Lazar
+Author:             David Lazar, Bas van Dijk
 Maintainer:         David Lazar <lazar6@illinois.edu>
 Category:           System
 Build-type:         Simple
