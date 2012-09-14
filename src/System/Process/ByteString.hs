@@ -24,10 +24,10 @@ readProcessWithExitCode cmd args input = mask $ \restore -> do
       (do hClose inh; hClose outh; hClose errh;
           terminateProcess pid; waitForProcess pid) $ restore $ do
 
-        -- fork off a thread to start consuming stdout
+      -- fork off a thread to start consuming stdout
       waitOut <- forkWait $ B.hGetContents outh
 
-        -- fork off a thread to start consuming stderr
+      -- fork off a thread to start consuming stderr
       waitErr <- forkWait $ B.hGetContents errh
 
       -- now write and flush any input
