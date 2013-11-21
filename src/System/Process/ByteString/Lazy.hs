@@ -22,8 +22,8 @@ readProcessWithExitCode cmd args input = mask $ \restore -> do
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
     flip onException
-      (do hClose inh; hClose outh; hClose errh;
-            terminateProcess pid; waitForProcess pid) $ restore $ do
+      (do terminateProcess pid; hClose inh; hClose outh; hClose errh;
+          waitForProcess pid) $ restore $ do
 
       -- fork off a thread to start consuming stdout
       out <- B.hGetContents outh
