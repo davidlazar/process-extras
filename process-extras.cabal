@@ -26,6 +26,7 @@ Library
   Exposed-modules:
     System.Process.ByteString
     System.Process.ByteString.Lazy
+    System.Process.Chunks
     System.Process.ListLike
     System.Process.ListLike.Classes
     System.Process.ListLike.Instances
@@ -45,5 +46,6 @@ Library
     process,
     bytestring,
     ListLike >= 4,
+    mtl,
     text,
     deepseq
