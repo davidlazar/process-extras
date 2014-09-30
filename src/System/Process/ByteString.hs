@@ -9,17 +9,18 @@ import System.Exit (ExitCode)
 import System.IO
 import Utils (forkWait)
 
--- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
-readProcessWithExitCode
-    :: FilePath                 -- ^ command to run
-    -> [String]                 -- ^ any arguments
+-- | Like 'System.Process.readProcessWithExitCode', but takes a
+-- CreateProcess instead of a command and argument list, and reads and
+-- writes type 'ByteString'
+readCreateProcessWithExitCode
+    :: CreateProcess            -- ^ command to run
     -> ByteString               -- ^ standard input
     -> IO (ExitCode, ByteString, ByteString) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = mask $ \restore -> do
+readCreateProcessWithExitCode p input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
-        createProcess (proc cmd args){ std_in  = CreatePipe,
-                                       std_out = CreatePipe,
-                                       std_err = CreatePipe }
+        createProcess p { std_in  = CreatePipe,
+                          std_out = CreatePipe,
+                          std_err = CreatePipe }
     flip onException
       (do terminateProcess pid; hClose inh; hClose outh; hClose errh;
           waitForProcess pid) $ restore $ do
@@ -45,3 +46,7 @@ readProcessWithExitCode cmd args input = mask $ \restore -> do
       ex <- waitForProcess pid
 
       return (ex, out, err)
+
+-- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
+readProcessWithExitCode :: FilePath -> [String] -> ByteString -> IO (ExitCode, ByteString, ByteString)
+readProcessWithExitCode cmd args input = readCreateProcessWithExitCode (proc cmd args) input

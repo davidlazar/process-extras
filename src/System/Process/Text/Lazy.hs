@@ -13,16 +13,15 @@ import System.IO
 import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'Text'
-readProcessWithExitCode
-    :: FilePath                  -- ^ command to run
-    -> [String]                  -- ^ any arguments
+readCreateProcessWithExitCode
+    :: CreateProcess             -- ^ command to run
     -> Text                      -- ^ standard input
     -> IO (ExitCode, Text, Text) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = mask $ \restore -> do
+readCreateProcessWithExitCode p input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
-        createProcess (proc cmd args){ std_in  = CreatePipe,
-                                       std_out = CreatePipe,
-                                       std_err = CreatePipe }
+        createProcess p { std_in  = CreatePipe,
+                          std_out = CreatePipe,
+                          std_err = CreatePipe }
     flip onException
       (do terminateProcess pid; hClose inh; hClose outh; hClose errh;
           waitForProcess pid) $ restore $ do
@@ -50,3 +49,7 @@ readProcessWithExitCode cmd args input = mask $ \restore -> do
       ex <- waitForProcess pid
 
       return (ex, out, err)
+
+-- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
+readProcessWithExitCode :: FilePath -> [String] -> Text -> IO (ExitCode, Text, Text)
+readProcessWithExitCode cmd args input = readCreateProcessWithExitCode (proc cmd args) input
