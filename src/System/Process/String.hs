@@ -12,10 +12,8 @@ readCreateProcess :: (ListLikeLazyIO String Char, ProcessOutput String b) => Cre
 readCreateProcess = LL.readCreateProcess
 
 readCreateProcessWithExitCode
-    :: CreateProcess                 -- ^ command to run
+    :: ListLikeLazyIO String Char =>
+       CreateProcess                 -- ^ command to run
     -> String                        -- ^ standard input
     -> IO (ExitCode, String, String) -- ^ exitcode, stdout, stderr
-readCreateProcessWithExitCode p input =
-    case cmdspec p of
-      RawCommand cmd args -> readProcessWithExitCode cmd args input
-      ShellCommand s -> error ("readCreateProcessWithExitCode" ++ show s ++ ": RawCommand only")
+readCreateProcessWithExitCode = LL.readCreateProcess
