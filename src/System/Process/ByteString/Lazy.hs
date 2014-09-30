@@ -1,14 +1,14 @@
+{-# LANGUAGE FlexibleContexts #-}
 module System.Process.ByteString.Lazy where
 
-import Control.Exception
-import qualified Control.Exception as C (evaluate)
-import Control.Monad
 import Data.ByteString.Lazy (ByteString)
-import qualified Data.ByteString.Lazy as B
-import System.Process
 import System.Exit (ExitCode)
-import System.IO
-import Utils (forkWait)
+import System.Process
+import qualified System.Process.ListLike.Read as LL (readCreateProcess, readProcess)
+import System.Process.ListLike.Classes (ProcessOutput)
+
+readCreateProcess :: ProcessOutput ByteString b => CreateProcess -> ByteString -> IO b
+readCreateProcess = LL.readCreateProcess
 
 -- | Like 'System.Process.readProcessWithExitCode', but takes a
 -- CreateProcess instead of a command and argument list, and reads and
@@ -17,39 +17,12 @@ readCreateProcessWithExitCode
     :: CreateProcess            -- ^ command to run
     -> ByteString               -- ^ standard input
     -> IO (ExitCode, ByteString, ByteString) -- ^ exitcode, stdout, stderr
-readCreateProcessWithExitCode p input = mask $ \restore -> do
-    (Just inh, Just outh, Just errh, pid) <-
-        createProcess p { std_in  = CreatePipe,
-                          std_out = CreatePipe,
-                          std_err = CreatePipe }
-    flip onException
-      (do terminateProcess pid; hClose inh; hClose outh; hClose errh;
-          waitForProcess pid) $ restore $ do
-
-      -- fork off a thread to start consuming stdout
-      out <- B.hGetContents outh
-      waitOut <- forkWait $ void $ C.evaluate $ B.length out
-
-      -- fork off a thread to start consuming stderr
-      err <- B.hGetContents errh
-      waitErr <- forkWait $ void $ C.evaluate $ B.length err
-
-      -- now write and flush any input
-      unless (B.null input) $ do B.hPutStr inh input; hFlush inh
-      hClose inh -- done with stdin
-
-      -- wait on the output
-      waitOut
-      waitErr
-
-      hClose outh
-      hClose errh
-
-      -- wait on the process
-      ex <- waitForProcess pid
-
-      return (ex, out, err)
+readCreateProcessWithExitCode = LL.readCreateProcess
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
 readProcessWithExitCode :: FilePath -> [String] -> ByteString -> IO (ExitCode, ByteString, ByteString)
 readProcessWithExitCode cmd args input = readCreateProcessWithExitCode (proc cmd args) input
+
+-- | Like 'System.Process.readProcess', but using 'ByteString'
+readProcess :: FilePath -> [String] -> ByteString -> IO ByteString
+readProcess = LL.readProcess
