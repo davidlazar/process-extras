@@ -8,6 +8,7 @@ module System.Process.ListLike.Read
       readInterleaved,
       readCreateProcessWithExitCode,
       readProcessWithExitCode,
+      StdoutWrapper(..),
       readProcess
     ) where
 
