@@ -1,6 +1,7 @@
--- | Support for using the 'Chunk' list returned by 'readProcessChunks'.
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
-module System.Process.Chunks
+-- | Like "System.Process.Chunk", but catches all exceptions and
+-- returns them using the 'Exception' constructor.
+{-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
+module System.Process.ChunkE
     ( Chunk(..)
     , readCreateProcessChunks
     , discardEmptyChunks
@@ -25,7 +26,7 @@ module System.Process.Chunks
 
 import Control.Applicative ((<$>), (<*>))
 import Control.DeepSeq (NFData)
-import Control.Exception (throw)
+import Control.Exception (SomeException)
 import Control.Monad.State (StateT, evalState, evalStateT, get, put)
 import Control.Monad.Trans (lift)
 import Data.ListLike (ListLike(..), ListLikeIO(hPutStr, putStr))
@@ -43,13 +44,14 @@ data Chunk a
     = ProcessHandle ProcessHandle -- ^ This will always come first
     | Stdout a
     | Stderr a
+    | Exception SomeException
     | Result ExitCode
 
 instance ListLikeLazyIO a c => ProcessOutput a [Chunk a] where
     pidf p = [ProcessHandle p]
     outf x = [Stdout x]
     errf x = [Stderr x]
-    intf e = throw e
+    intf e = [Exception e]
     codef c = [Result c]
 
 instance ListLikeLazyIO a c => ProcessOutput a (ExitCode, [Chunk a]) where
@@ -57,7 +59,7 @@ instance ListLikeLazyIO a c => ProcessOutput a (ExitCode, [Chunk a]) where
     codef c = (c, mempty)
     outf x = (mempty, [Stdout x])
     errf x = (mempty, [Stderr x])
-    intf e = throw e
+    intf e = (mempty, [Exception e])
 
 -- | This lets us use DeepSeq's 'Control.DeepSeq.force' on a stream
 -- of Chunks.
