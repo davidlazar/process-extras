@@ -51,9 +51,13 @@ Library
     text,
     deepseq
 
-Executable process-extras-tests
-  Main-Is: tests/Main.hs
-  Build-depends: base >= 4, bytestring, deepseq, process, process-extras, utf8-string, unix, text, HUnit, ListLike, regex-posix
+Test-Suite process-extras-tests
+  Type: exitcode-stdio-1.0
+  Main-Is: Main.hs
+  Hs-Source-Dirs: tests, src
+  Build-depends: base >= 4, bytestring, deepseq, process, utf8-string, unix, text, HUnit, ListLike, regex-posix
+  Build-depends: mtl
+  GHC-Options: -Wall -O2 -threaded -rtsopts
 
 Executable process-extras-interactive-tests
   Main-Is: tests/Interactive.hs
