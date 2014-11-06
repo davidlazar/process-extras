@@ -25,7 +25,6 @@ module System.Process.ChunkE
     ) where
 
 import Control.Applicative ((<$>), (<*>))
-import Control.DeepSeq (NFData)
 import Control.Exception (SomeException)
 import Control.Monad.State (StateT, evalState, evalStateT, get, put)
 import Control.Monad.Trans (lift)
@@ -60,10 +59,6 @@ instance ListLikeLazyIO a c => ProcessOutput a (ExitCode, [Chunk a]) where
     outf x = (mempty, [Stdout x])
     errf x = (mempty, [Stderr x])
     intf e = (mempty, [Exception e])
-
--- | This lets us use DeepSeq's 'Control.DeepSeq.force' on a stream
--- of Chunks.
-instance NFData ExitCode
 
 -- | A concrete use of 'readCreateProcess' - build a list containing
 -- chunks of process output, any exceptions that get thrown, and

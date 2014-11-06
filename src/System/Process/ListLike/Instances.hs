@@ -7,7 +7,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module System.Process.ListLike.Instances where
 
-import Control.DeepSeq (force)
+import Control.DeepSeq (force, NFData)
 import Control.Exception as E (evaluate, throw)
 import Data.ByteString.Char8 as B (ByteString)
 import qualified Data.ByteString.Lazy as L
@@ -41,3 +41,7 @@ instance ListLikeLazyIO a c => ProcessOutput a (ExitCode, a, a) where
     outf x = (mempty, x, mempty)
     errf x = (mempty, mempty, x)
     intf e = throw e
+
+-- | This lets us use DeepSeq's 'Control.DeepSeq.force' on a stream
+-- of Chunks.
+instance NFData ExitCode
