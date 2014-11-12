@@ -2,7 +2,7 @@
 module System.Process.String where
 
 import System.Exit (ExitCode)
-import System.Process (CreateProcess(..), CmdSpec(..), readProcessWithExitCode)
+import System.Process (CreateProcess(..))
 import System.Process.ListLike.Classes (ProcessOutput, ListLikeLazyIO)
 import System.Process.ListLike.Read as LL (readCreateProcess)
 

@@ -26,8 +26,6 @@ import System.Process.ByteString.Lazy as LB
 import System.Process.String as S
 import System.Process.Text as T
 import System.Process.Text.Lazy as LT
-import qualified System.Process.Chunks as C
-import qualified System.Process.ChunkE as E
 import System.Process.ListLike.Classes (ListLikeLazyIO, ProcessOutput)
 import System.Process.ListLike.Instances
 import System.Process.ListLike.StrictString () -- the lazy one is the same as lazy text, the strict one is more interesting to test
@@ -45,12 +43,6 @@ instance Eq ProcessHandle where
 
 instance Eq SomeException where
     _ == _ = False
-
-deriving instance Show a => Show (C.Chunk a)
-deriving instance Show a => Show (E.Chunk a)
-
-deriving instance Eq a => Eq (C.Chunk a)
-deriving instance Eq a => Eq (E.Chunk a)
 
 instance Monoid Test where
     mempty = TestList []
@@ -206,26 +198,6 @@ test1 =
                        hPutStrLn stderr (printf "%7.2f million chars/second for " (v / 1000000.00) <> s <> " (" <> percentMessage v (expected s) <> ")")
                        let r = v `about` expected s
                        assertEqual "5M lines" (ExitSuccess, l, "Within 30% of usual speed") (ex, length out, r))
-         -- This demonstrates lazy generation of process output.  If
-         -- you try this with a strict instance the call to
-         -- readCreateProcessChunks will block indefinitely.
-         , let expected "Lazy Text" = [E.Stderr "..",E.Stderr "..",E.Stderr "..",E.Stderr "..",E.Stderr "..",E.Stderr "..",E.Stderr "..",E.Stderr "..",E.Stderr ".."]
-               expected "Lazy ByteString" = [E.Stderr "................................",E.Stderr ".................................",
-                                             E.Stderr ".................................",E.Stderr ".................................",
-                                             E.Stderr "................................",E.Stderr ".................................",
-                                             E.Stderr ".................................",E.Stderr ".................................",
-                                             E.Stderr "................................"]
-               expected _ = error "unexpected" in
-           testLazyInstances
-           (\ s i -> TestLabel s $ TestCase $ do
-                       (E.ProcessHandle _ : chunks) <- LL.readCreateProcess (proc "bash" ["-c", "yes | cat -n"]) i >>= return . take 10 . E.dotifyChunks 1000 (head (i <> "."))
-                       assertEqual "ten chunks" (expected s) chunks)
-         , testInstances
-           (\ s i -> TestLabel s $ TestCase $ do
-                       (E.ProcessHandle _ : chunks) <- LL.readCreateProcess (proc "tests/script2.hs" []) i
-                       assertEqual
-                         "exception chunk" [E.Stderr "Here comes an exception\nscript2.hs: user error (This is a GHC.IO.Exception.UserError)\n",
-                                            E.Result (ExitFailure 1)] (E.fuseChunks chunks))
          , testInstances
            (\ s i -> TestLabel s $ TestCase $ do
                        hPutStrLn stderr $ "deadlock test for " ++ s

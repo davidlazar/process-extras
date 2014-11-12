@@ -8,9 +8,9 @@ import Control.Exception (SomeException)
 import Data.ListLike (ListLikeIO(..))
 import Data.ListLike.Text.Text ()
 import Data.ListLike.Text.TextLazy ()
-import Data.Monoid (Monoid(mempty, mappend))
+import Data.Monoid (Monoid)
 import Prelude hiding (null, length, rem)
-import System.Exit (ExitCode(ExitFailure))
+import System.Exit (ExitCode)
 import System.IO hiding (hPutStr, hGetContents)
 import System.Process (ProcessHandle)
 
@@ -21,13 +21,6 @@ class Monoid b => ProcessOutput a b | b -> a where
     errf :: a -> b
     intf :: SomeException -> b
     codef :: ExitCode -> b
-
--- | A process usually has one 'ExitCode' at the end of its output, this 'Monoid'
--- instance lets us build the type returned by 'System.Process.readProcessWithExitCode'.
-instance Monoid ExitCode where
-    mempty = ExitFailure 0
-    mappend x (ExitFailure 0) = x
-    mappend _ x = x
 
 -- | Class of types which can be used as the input and outputs of
 -- these process functions.

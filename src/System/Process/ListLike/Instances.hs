@@ -8,15 +8,15 @@
 module System.Process.ListLike.Instances where
 
 import Control.DeepSeq (force, NFData)
-import Control.Exception as E (evaluate, throw)
+import Control.Exception as E (evaluate, SomeException, throw)
 import Data.ByteString.Char8 as B (ByteString)
 import qualified Data.ByteString.Lazy as L
 import Data.ListLike.IO (hGetContents)
-import Data.Monoid (mempty)
+import Data.Monoid (Monoid(mempty, mappend))
 import Data.Text as T (Text)
 import qualified Data.Text.Lazy as LT
 import Data.Word (Word8)
-import System.Exit (ExitCode)
+import System.Exit (ExitCode(ExitFailure))
 import System.Process.ListLike.Classes (ListLikeLazyIO(..), ProcessOutput(..))
 
 instance ListLikeLazyIO B.ByteString Word8 where
@@ -35,12 +35,31 @@ instance ListLikeLazyIO LT.Text Char where
   --setModes _ _  = return ()
   readChunks h = hGetContents h >>= evaluate . Prelude.map (LT.fromChunks . (: [])) . LT.toChunks
 
+-- | A process usually has one 'ExitCode' at the end of its output, this 'Monoid'
+-- instance lets us build the type returned by 'System.Process.readProcessWithExitCode'.
+instance Monoid ExitCode where
+    mempty = ExitFailure 0
+    mappend x (ExitFailure 0) = x
+    mappend _ x = x
+
 instance ListLikeLazyIO a c => ProcessOutput a (ExitCode, a, a) where
     pidf _ = mempty
     codef c = (c, mempty, mempty)
     outf x = (mempty, x, mempty)
     errf x = (mempty, mempty, x)
     intf e = throw e
+
+instance Monoid (Either SomeException ExitCode) where
+    mempty = Right (ExitFailure 0)
+    mappend x (Right (ExitFailure 0)) = x
+    mappend _ x = x
+
+instance ListLikeLazyIO a c => ProcessOutput a (Either SomeException ExitCode, a, a) where
+    pidf _ = mempty
+    codef c = (Right c, mempty, mempty)
+    outf x = (mempty, x, mempty)
+    errf x = (mempty, mempty, x)
+    intf e = (Left e, mempty, mempty)
 
 -- | This lets us use DeepSeq's 'Control.DeepSeq.force' on a stream
 -- of Chunks.

@@ -1,5 +1,5 @@
 Name:               process-extras
-Version:            0.2.2
+Version:            0.2.3
 Synopsis:           Process extras
 Description:        Extra functionality for the Process library
                     <http://hackage.haskell.org/package/process>.
@@ -26,8 +26,6 @@ Library
   Exposed-modules:
     System.Process.ByteString
     System.Process.ByteString.Lazy
-    System.Process.ChunkE
-    System.Process.Chunks
     System.Process.ListLike
     System.Process.ListLike.Classes
     System.Process.ListLike.Instances
@@ -58,8 +56,3 @@ Test-Suite process-extras-tests
   Build-depends: base >= 4, bytestring, deepseq, process, utf8-string, unix, text, HUnit, ListLike, regex-posix
   Build-depends: mtl
   GHC-Options: -Wall -O2 -threaded -rtsopts
-
-Executable process-extras-interactive-tests
-  Main-Is: tests/Interactive.hs
-  GHC-Options: -Wall -O2 -threaded -rtsopts
-  Build-Depends: base >= 4, bytestring, deepseq, HUnit, ListLike, mtl, process, process-extras, text, utf8-string, unix
