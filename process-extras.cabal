@@ -1,5 +1,5 @@
 Name:               process-extras
-Version:            0.2.0
+Version:            0.2.3
 Synopsis:           Process extras
 Description:        Extra functionality for the Process library
                     <http://hackage.haskell.org/package/process>.
@@ -10,7 +10,7 @@ Author:             David Lazar, Bas van Dijk
 Maintainer:         David Lazar <lazar6@illinois.edu>
 Category:           System
 Build-type:         Simple
-Cabal-version:      >=1.6
+Cabal-version:      >= 1.8
 Extra-source-files:
   README.md
 
@@ -26,6 +26,14 @@ Library
   Exposed-modules:
     System.Process.ByteString
     System.Process.ByteString.Lazy
+    System.Process.ListLike
+    System.Process.ListLike.Classes
+    System.Process.ListLike.Instances
+    System.Process.ListLike.LazyString
+    System.Process.ListLike.Read
+    System.Process.ListLike.ReadNoThreads
+    System.Process.ListLike.StrictString
+    System.Process.String
     System.Process.Text
     System.Process.Text.Lazy
 
@@ -36,5 +44,15 @@ Library
     base >= 4 && < 5,
     process,
     bytestring,
+    ListLike >= 4,
+    mtl,
     text,
     deepseq
+
+Test-Suite process-extras-tests
+  Type: exitcode-stdio-1.0
+  Main-Is: Main.hs
+  Hs-Source-Dirs: tests, src
+  Build-depends: base >= 4, bytestring, deepseq, process, utf8-string, unix, text, HUnit, ListLike, regex-posix
+  Build-depends: mtl
+  GHC-Options: -Wall -O2 -threaded -rtsopts
