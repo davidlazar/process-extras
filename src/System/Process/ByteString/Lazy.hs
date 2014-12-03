@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module System.Process.ByteString.Lazy where
 
 import Control.Exception
@@ -6,19 +7,15 @@ import Control.Monad
 import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as B
 import System.Process
-import System.Exit (ExitCode)
+import System.Process.ListLike
 import System.IO
 import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
-readProcessWithExitCode
-    :: FilePath                 -- ^ command to run
-    -> [String]                 -- ^ any arguments
-    -> ByteString               -- ^ standard input
-    -> IO (ExitCode, ByteString, ByteString) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = mask $ \restore -> do
+instance ListLikeProcessIO ByteString where
+  readCreateProcessWithExitCode p input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
-        createProcess (proc cmd args){ std_in  = CreatePipe,
+        createProcess p{ std_in  = CreatePipe,
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
     flip onException
