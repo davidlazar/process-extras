@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module System.Process.Text.Lazy where
 
 import Control.DeepSeq (rnf)
@@ -8,19 +9,15 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import System.Process
-import System.Exit (ExitCode)
+import System.Process.ListLike
 import System.IO
 import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'Text'
-readProcessWithExitCode
-    :: FilePath                  -- ^ command to run
-    -> [String]                  -- ^ any arguments
-    -> Text                      -- ^ standard input
-    -> IO (ExitCode, Text, Text) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = mask $ \restore -> do
+instance ListLikeProcessIO Text where
+  readCreateProcessWithExitCode p input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
-        createProcess (proc cmd args){ std_in  = CreatePipe,
+        createProcess p{ std_in  = CreatePipe,
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
     flip onException
