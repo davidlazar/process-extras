@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module System.Process.ByteString where
 
 import Control.Exception
@@ -5,19 +6,16 @@ import Control.Monad
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import System.Process
+import System.Process.Common
 import System.Exit (ExitCode)
 import System.IO
 import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'ByteString'
-readProcessWithExitCode
-    :: FilePath                 -- ^ command to run
-    -> [String]                 -- ^ any arguments
-    -> ByteString               -- ^ standard input
-    -> IO (ExitCode, ByteString, ByteString) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = mask $ \restore -> do
+instance ListLikeProcessIO ByteString where
+  readCreateProcessWithExitCode p input = mask $ \restore -> do
     (Just inh, Just outh, Just errh, pid) <-
-        createProcess (proc cmd args){ std_in  = CreatePipe,
+        createProcess p{ std_in  = CreatePipe,
                                        std_out = CreatePipe,
                                        std_err = CreatePipe }
     flip onException
@@ -45,3 +43,7 @@ readProcessWithExitCode cmd args input = mask $ \restore -> do
       ex <- waitForProcess pid
 
       return (ex, out, err)
+
+-- | Specialized version for backwards compatibility.
+readProcessWithExitCode :: FilePath -> [String] -> ByteString -> IO (ExitCode, ByteString, ByteString)
+readProcessWithExitCode = System.Process.Common.readProcessWithExitCode
