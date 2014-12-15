@@ -1,48 +1,24 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module System.Process.Text where
 
-import Control.Exception
+import Control.Applicative ((<$>))
 import Control.Monad
+import Data.ListLike.IO (hGetContents)
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import Prelude hiding (null)
 import System.Process
+import System.Process.Common
 import System.Exit (ExitCode)
-import System.IO
-import Utils (forkWait)
 
 -- | Like 'System.Process.readProcessWithExitCode', but using 'Text'
-readProcessWithExitCode
-    :: FilePath                 -- ^ command to run
-    -> [String]                 -- ^ any arguments
-    -> Text                     -- ^ standard input
-    -> IO (ExitCode, Text, Text) -- ^ exitcode, stdout, stderr
-readProcessWithExitCode cmd args input = mask $ \restore -> do
-    (Just inh, Just outh, Just errh, pid) <-
-        createProcess (proc cmd args){ std_in  = CreatePipe,
-                                       std_out = CreatePipe,
-                                       std_err = CreatePipe }
-    flip onException
-      (do terminateProcess pid; hClose inh; hClose outh; hClose errh;
-          waitForProcess pid) $ restore $ do
+instance ListLikeProcessIO Text Char where
+    forceOutput = return
+    readChunks h = (: []) <$> hGetContents h
 
-      -- fork off a thread to start consuming stdout
-      waitOut <- forkWait $ T.hGetContents outh
+-- | Specialized version for backwards compatibility.
+readProcessWithExitCode :: FilePath -> [String] -> Text -> IO (ExitCode, Text, Text)
+readProcessWithExitCode = System.Process.Common.readProcessWithExitCode
 
-      -- fork off a thread to start consuming stderr
-      waitErr <- forkWait $ T.hGetContents errh
-
-      -- now write and flush any input
-      unless (T.null input) $ do T.hPutStr inh input; hFlush inh
-      hClose inh -- done with stdin
-
-      -- wait on the output
-      out <- waitOut
-      err <- waitErr
-
-      hClose outh
-      hClose errh
-
-      -- wait on the process
-      ex <- waitForProcess pid
-
-      return (ex, out, err)
+readCreateProcessWithExitCode :: CreateProcess -> Text -> IO (ExitCode, Text, Text)
+readCreateProcessWithExitCode = System.Process.Common.readCreateProcessWithExitCode
